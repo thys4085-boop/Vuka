@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+  <title>VukaRide – Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    :root{--bg:#0d0d10;--card:#161618;--card2:#1e1e22;--accent:#f5a623;--text:#f0f0f5;--muted:#7a7a8c;--border:rgba(255,255,255,0.08);--green:#25D366}
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100%;overflow-x:hidden}
+    /* MAP STRIP */
+    #map{width:100%;height:220px;z-index:0}
+    .map-cover{position:relative}
+    .map-label{position:absolute;bottom:10px;left:14px;background:rgba(13,13,16,.85);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:8px;padding:5px 11px;font-size:12px;color:var(--accent);font-weight:600;z-index:2}
+    /* TOP */
+    .top{padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;background:rgba(13,13,16,.97);position:sticky;top:0;z-index:10;border-bottom:1px solid var(--border)}
+    .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--text)}.logo b{color:var(--accent)}
+    .atag{background:rgba(245,166,35,.13);border:1px solid rgba(245,166,35,.3);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--accent);font-weight:700}
+    /* BODY */
+    .body{padding:14px 14px 80px}
+    /* STATS */
+    .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px}
+    .sc{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px 13px}
+    .sv{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;color:var(--accent)}.sl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+    .sc.wide{grid-column:1/-1}
+    .sc.wide .sv{font-size:20px}
+    /* SECTION */
+    .sh{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin:16px 0 9px;display:flex;align-items:center;justify-content:space-between}
+    .sh small{font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted);font-weight:400}
+    /* RIDE LOG */
+    .ride{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:12px 13px;margin-bottom:9px;display:flex;align-items:flex-start;gap:11px}
+    .ride-ico{font-size:22px;flex-shrink:0;margin-top:1px}
+    .ride-info{flex:1}
+    .ride-name{font-size:14px;font-weight:500}.ride-route{font-size:12px;color:var(--muted);margin-top:2px}
+    .ride-meta{display:flex;align-items:center;gap:8px;margin-top:5px}
+    .ride-time{font-size:11px;color:var(--muted)}.ride-fare{font-size:13px;color:var(--accent);font-weight:700}
+    .ride-type{font-size:10px;background:var(--card2);border-radius:20px;padding:2px 8px;color:var(--muted)}
+    .status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:6px}
+    .s-done{background:#4cff8f}.s-active{background:var(--accent);animation:glow 1.5s infinite}
+    @keyframes glow{0%,100%{box-shadow:0 0 0 3px rgba(245,166,35,.2)}50%{box-shadow:0 0 0 6px rgba(245,166,35,.05)}}
+    /* ADD RIDE */
+    .add-btn{width:100%;background:var(--accent);color:#000;border:none;border-radius:13px;padding:14px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.18s;margin-bottom:9px}
+    .add-btn:active{transform:scale(.98)}
+    /* MODAL */
+    .ov{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(5px);z-index:20;display:none;align-items:flex-end}
+    .ov.open{display:flex}
+    .mod{width:100%;background:var(--card);border-radius:22px 22px 0 0;padding:18px 16px 36px;animation:sup .38s cubic-bezier(.16,1,.3,1) both;max-height:92vh;overflow-y:auto;position:relative}
+    .hdl{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+    .mt{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:14px}
+    .mc{position:absolute;top:16px;right:14px;background:var(--card2);border:none;color:var(--muted);width:29px;height:29px;border-radius:50%;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .fi{margin-bottom:10px}
+    .fi label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:4px;display:block}
+    input,select{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:11px;padding:12px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:.2s;-webkit-appearance:none}
+    input:focus,select:focus{border-color:rgba(245,166,35,.45)}
+    input::placeholder,select::placeholder{color:var(--muted)}
+    select option{background:#1e1e22}
+    .sbtn{width:100%;background:var(--accent);color:#000;border:none;border-radius:12px;padding:14px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;transition:.18s}
+    .sbtn:active{transform:scale(.98)}
+    .empty{text-align:center;padding:20px;color:var(--muted);font-size:13px}
+    .nav-links{display:flex;gap:9px;margin-top:14px}
+    .nl{flex:1;display:block;text-align:center;color:var(--muted);font-size:12px;text-decoration:none;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;font-weight:500}
+    .nl span{color:var(--accent);font-weight:700;display:block;font-size:13px}
+    .toast{position:fixed;bottom:20px;left:14px;right:14px;background:var(--accent);color:#000;border-radius:12px;padding:13px 16px;font-weight:700;font-size:14px;z-index:30;text-align:center;opacity:0;transform:translateY(10px);transition:.3s;pointer-events:none}
+    .toast.show{opacity:1;transform:translateY(0)}
+    .wabtn{width:100%;background:var(--green);color:#fff;border:none;border-radius:12px;padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.18s;margin-bottom:9px}
+    .wabtn:active{transform:scale(.98)}
+    @keyframes sup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .leaflet-control-attribution,.leaflet-control-zoom{display:none!important}
+  </style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">Vuka<b>Ride</b></div>
+  <div class="atag">⚙️ Admin</div>
+</div>
+
+<div class="map-cover">
+  <div id="map"></div>
+  <div class="map-label">📍 Kroonstad Live Map</div>
+</div>
+
+<div class="body">
+  <!-- STATS -->
+  <div class="sgrid">
+    <div class="sc"><div class="sv" id="totalTrips">0</div><div class="sl">Total Trips</div></div>
+    <div class="sc"><div class="sv" id="totalEarned">R0</div><div class="sl">Total Revenue</div></div>
+    <div class="sc"><div class="sv" id="todayTrips">0</div><div class="sl">Today's Trips</div></div>
+    <div class="sc"><div class="sv" id="avgFare">R0</div><div class="sl">Avg Fare</div></div>
+  </div>
+
+  <!-- ACTIONS -->
+  <button class="wabtn" onclick="openWA()"><span style="font-size:18px">💬</span>Open WhatsApp (Bookings)</button>
+  <button class="add-btn" onclick="openMod()">+ Log a Completed Trip</button>
+
+  <!-- RIDE LOG -->
+  <div class="sh">Trip Log <small id="countLabel">0 trips</small></div>
+  <div id="rideLog"><div class="empty" id="emptyMsg">No trips logged yet.<br>Add your first trip above.</div></div>
+
+  <!-- NAV -->
+  <div class="nav-links">
+    <a class="nl" href="index.html"><span>🚗 Passenger</span>Booking App</a>
+    <a class="nl" href="driver.html"><span>🧑‍✈️ Driver</span>Driver App</a>
+  </div>
+</div>
+
+<!-- ADD TRIP MODAL -->
+<div class="ov" id="mod" onclick="oc(event)">
+  <div class="mod">
+    <div class="hdl"></div>
+    <button class="mc" onclick="closeMod()">✕</button>
+    <div class="mt">📋 Log Trip</div>
+    <div class="fi"><label>Passenger Name</label><input id="mn" placeholder="Name from WhatsApp"/></div>
+    <div class="fi"><label>Pickup</label><input id="mpu" placeholder="Pickup address"/></div>
+    <div class="fi"><label>Drop-off</label><input id="mdr" placeholder="Destination"/></div>
+    <div class="fi"><label>Ride Type</label>
+      <select id="mrt">
+        <option value="Economy">Economy – R50–70</option>
+        <option value="Comfort">Comfort – R80–100</option>
+        <option value="XL">XL/Minibus – R120–160</option>
+      </select>
+    </div>
+    <div class="fi"><label>Actual Fare (R)</label><input id="mf" type="number" placeholder="e.g. 65"/></div>
+    <button class="sbtn" onclick="logTrip()">Save Trip ✓</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // ── MAP ──
+  const KSD=[-27.6508,27.2289];
+  const map=L.map('map',{zoomControl:false,attributionControl:false}).setView(KSD,14);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+
+  const mkIcon=c=>L.divIcon({className:'',html:`<div style="width:13px;height:13px;background:${c};border-radius:50%;border:3px solid #0d0d10;box-shadow:0 0 0 5px ${c}44"></div>`,iconSize:[13,13],iconAnchor:[7,7]});
+
+  // Show a few demo markers for Kroonstad
+  const spots=[
+    {ll:[-27.6508,27.2289],c:'#f5a623',label:'CBD'},
+    {ll:[-27.6460,27.2340],c:'#4cff8f',label:'Hospital'},
+    {ll:[-27.6600,27.2250],c:'#4cff8f',label:'Station'}
+  ];
+  spots.forEach(s=>L.marker(s.ll,{icon:mkIcon(s.c)}).addTo(map).bindPopup(s.label));
+
+  // Try live GPS for admin location
+  navigator.geolocation && navigator.geolocation.getCurrentPosition(p=>{
+    L.marker([p.coords.latitude,p.coords.longitude],{icon:mkIcon('#ff5050')}).addTo(map).bindPopup('You (Admin)');
+  },()=>{});
+
+  // ── STATE (persisted in localStorage) ──
+  let trips=JSON.parse(localStorage.getItem('vr_trips')||'[]');
+
+  function save(){localStorage.setItem('vr_trips',JSON.stringify(trips))}
+  function updateStats(){
+    const total=trips.length;
+    const rev=trips.reduce((a,t)=>a+(t.fare||0),0);
+    const today=new Date().toDateString();
+    const todayCount=trips.filter(t=>new Date(t.ts).toDateString()===today).length;
+    const avg=total?Math.round(rev/total):0;
+    document.getElementById('totalTrips').textContent=total;
+    document.getElementById('totalEarned').textContent='R'+rev;
+    document.getElementById('todayTrips').textContent=todayCount;
+    document.getElementById('avgFare').textContent='R'+avg;
+    document.getElementById('countLabel').textContent=total+' trip'+(total!==1?'s':'');
+  }
+
+  function renderLog(){
+    const log=document.getElementById('rideLog');
+    if(!trips.length){log.innerHTML='<div class="empty" id="emptyMsg">No trips logged yet.<br>Add your first trip above.</div>';return;}
+    log.innerHTML=[...trips].reverse().map(t=>`
+      <div class="ride">
+        <div class="status-dot s-done"></div>
+        <div class="ride-ico">🚗</div>
+        <div class="ride-info">
+          <div class="ride-name">${t.name}</div>
+          <div class="ride-route">📍 ${t.pickup} → 🏁 ${t.dropoff}</div>
+          <div class="ride-meta">
+            <span class="ride-time">${new Date(t.ts).toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'})}</span>
+            <span class="ride-type">${t.type}</span>
+            <span class="ride-fare">R${t.fare||'–'}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function openMod(){document.getElementById('mod').classList.add('open')}
+  function closeMod(){document.getElementById('mod').classList.remove('open')}
+  function oc(e){if(e.target===document.getElementById('mod'))closeMod()}
+
+  function logTrip(){
+    const n=document.getElementById('mn').value.trim();
+    const pu=document.getElementById('mpu').value.trim();
+    const dr=document.getElementById('mdr').value.trim();
+    const rt=document.getElementById('mrt').value;
+    const f=parseInt(document.getElementById('mf').value)||0;
+    if(!n||!pu||!dr){showT('Fill in all required fields');return;}
+    trips.push({name:n,pickup:pu,dropoff:dr,type:rt,fare:f,ts:Date.now()});
+    save();updateStats();renderLog();closeMod();
+    document.getElementById('mn').value='';document.getElementById('mpu').value='';document.getElementById('mdr').value='';document.getElementById('mf').value='';
+    showT('✅ Trip logged!');
+  }
+
+  function openWA(){
+    window.open('https://wa.me/27760175307','_blank');
+  }
+
+  function showT(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
+
+  updateStats();renderLog();
+</script>
+</body>
+</html>
